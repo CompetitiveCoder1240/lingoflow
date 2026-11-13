@@ -119,24 +119,45 @@ async def conversation_ws(websocket: WebSocket):
                 "type": "state", "state": "thinking",
             }))
 
-            # Stream LLM response and pipe through sentence-chunked TTS
+            # Collect the full LLM response first, then parse it.
+            # The LLM returns structured JSON with voice_reply + feedback.
+            # We must parse the JSON before sending to TTS, otherwise
+            # TTS will try to speak raw JSON tokens like braces and keys.
             full_response = ""
+            async for token in llm_service.stream_response(user_text):
+                if is_cancelled.is_set():
+                    break
+                full_response += token
 
-            async def token_generator():
-                nonlocal full_response
-                async for token in llm_service.stream_response(user_text):
-                    if is_cancelled.is_set():
-                        return
-                    full_response += token
-                    yield token
+            if is_cancelled.is_set():
+                await websocket.send_text(json.dumps({
+                    "type": "state", "state": "idle",
+                }))
+                return
+
+            # Parse into voice_reply (for TTS) and feedback (for UI)
+            parsed = llm_service.parse_response(full_response)
+            voice_reply = parsed.get("voice_reply", "").strip()
+            feedback = parsed.get("feedback", {})
+
+            if not voice_reply:
+                await websocket.send_text(json.dumps({
+                    "type": "state", "state": "idle",
+                }))
+                return
 
             # Signal: AI is speaking
             await websocket.send_text(json.dumps({
                 "type": "state", "state": "speaking",
             }))
 
+            # Send voice_reply through sentence-chunked TTS for low latency audio
+            async def voice_reply_tokens():
+                """Yield the voice_reply as a single block for sentence splitting."""
+                yield voice_reply
+
             async for sentence_text, audio_bytes in tts_service.stream_sentence_audio(
-                token_generator()
+                voice_reply_tokens()
             ):
                 if is_cancelled.is_set():
                     logger.info("Response cancelled by user (barge-in).")
@@ -151,15 +172,12 @@ async def conversation_ws(websocket: WebSocket):
                 # Send the audio as a binary frame
                 await websocket.send_bytes(audio_bytes)
 
-            # Parse full response for pedagogical feedback
-            if not is_cancelled.is_set() and full_response:
-                parsed = llm_service.parse_response(full_response)
-                feedback = parsed.get("feedback", {})
-                if feedback:
-                    await websocket.send_text(json.dumps({
-                        "type": "feedback",
-                        **feedback,
-                    }))
+            # Send pedagogical feedback to the UI
+            if not is_cancelled.is_set() and feedback:
+                await websocket.send_text(json.dumps({
+                    "type": "feedback",
+                    **feedback,
+                }))
 
             # Signal: back to idle
             await websocket.send_text(json.dumps({

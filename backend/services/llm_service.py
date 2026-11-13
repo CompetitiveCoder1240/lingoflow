@@ -1,7 +1,7 @@
 """
 LingoFlow - LLM Service (Google Gemini)
-Handles streaming completions via Google's official unified SDK (google-genai)
-using the latest free-tier Gemini 3.8 Flash model.
+Handles streaming completions via Google's official unified SDK (google-genai).
+Tries gemini-3.8-flash first, falls back to gemini-3.5-flash-lite if unavailable.
 Parses the dual-channel JSON response (voice_reply + pedagogical feedback).
 """
 
@@ -16,6 +16,7 @@ from google.genai import types
 from backend.config import (
     GEMINI_API_KEY,
     GEMINI_MODEL,
+    GEMINI_FALLBACK_MODEL,
     GEMINI_TEMPERATURE,
     GEMINI_MAX_OUTPUT_TOKENS,
 )
@@ -23,15 +24,19 @@ from backend.prompts.tutor_prompts import build_system_prompt
 
 logger = logging.getLogger(__name__)
 
+# Models that support the ThinkingConfig parameter
+_THINKING_SUPPORTED_MODELS = {"gemini-3.8-flash", "gemini-3.5-flash"}
+
 
 class GeminiLLMService:
     """
     Manages conversation history and streams LLM completions from Google Gemini.
+    Automatically falls back to a lighter model if the primary model is unavailable.
 
     Usage:
         llm = GeminiLLMService()
         async for chunk in llm.stream_response("Hello, how are you?"):
-            print(chunk)  # Token-by-token streaming
+            print(chunk)
         parsed = llm.parse_response(full_text)
     """
 
@@ -44,15 +49,45 @@ class GeminiLLMService:
         self._client = genai.Client(api_key=GEMINI_API_KEY)
         self._contents: list[types.Content] = []
         self._system_prompt = build_system_prompt()
+        self._active_model = GEMINI_MODEL
+        self._failed_models: set[str] = set()
 
     def reset_conversation(self) -> None:
         """Clear conversation history for a fresh session."""
         self._contents.clear()
+        self._failed_models.clear()
+        self._active_model = GEMINI_MODEL
         logger.info("Conversation history cleared.")
+
+    def _build_config(self, model: str) -> types.GenerateContentConfig:
+        """Build generation config, adding ThinkingConfig only for supported models."""
+        kwargs = {
+            "system_instruction": self._system_prompt,
+            "temperature": GEMINI_TEMPERATURE,
+            "max_output_tokens": GEMINI_MAX_OUTPUT_TOKENS,
+        }
+        if model in _THINKING_SUPPORTED_MODELS:
+            kwargs["thinking_config"] = types.ThinkingConfig(
+                thinking_level=types.ThinkingLevel.LOW
+            )
+        return types.GenerateContentConfig(**kwargs)
+
+    async def _try_stream(self, model: str) -> AsyncGenerator[str, None]:
+        """Attempt to stream from a specific model."""
+        config = self._build_config(model)
+        response_stream = await self._client.aio.models.generate_content_stream(
+            model=model,
+            contents=self._contents,
+            config=config,
+        )
+        async for chunk in response_stream:
+            if chunk.text:
+                yield chunk.text
 
     async def stream_response(self, user_text: str) -> AsyncGenerator[str, None]:
         """
         Send user text to Gemini and yield response tokens as they stream in.
+        Falls back to GEMINI_FALLBACK_MODEL if the primary model fails.
 
         Args:
             user_text: The transcribed user speech.
@@ -68,39 +103,42 @@ class GeminiLLMService:
             )
         )
 
-        # Configure request with system instruction, low thinking level for low latency
-        config = types.GenerateContentConfig(
-            system_instruction=self._system_prompt,
-            temperature=GEMINI_TEMPERATURE,
-            max_output_tokens=GEMINI_MAX_OUTPUT_TOKENS,
-            thinking_config=types.ThinkingConfig(
-                thinking_level=types.ThinkingLevel.LOW
-            ),
-        )
+        # Build ordered list of models to try
+        models_to_try = []
+        if self._active_model not in self._failed_models:
+            models_to_try.append(self._active_model)
+        if GEMINI_FALLBACK_MODEL not in self._failed_models:
+            if GEMINI_FALLBACK_MODEL != self._active_model:
+                models_to_try.append(GEMINI_FALLBACK_MODEL)
 
-        try:
-            response_stream = await self._client.aio.models.generate_content_stream(
-                model=GEMINI_MODEL,
-                contents=self._contents,
-                config=config,
-            )
+        full_response = ""
+        succeeded = False
 
-            full_response = ""
-            async for chunk in response_stream:
-                if chunk.text:
-                    full_response += chunk.text
-                    yield chunk.text
+        for model in models_to_try:
+            try:
+                logger.info(f"Streaming from {model}...")
+                async for chunk_text in self._try_stream(model):
+                    full_response += chunk_text
+                    yield chunk_text
 
-            # Record model turn in conversation history
-            self._contents.append(
-                types.Content(
-                    role="model",
-                    parts=[types.Part.from_text(text=full_response)],
-                )
-            )
+                # If we got here, it worked
+                if model != self._active_model:
+                    logger.info(f"Switched active model to {model}")
+                    self._active_model = model
+                succeeded = True
+                break
 
-        except Exception as e:
-            logger.error(f"Gemini streaming error: {e}")
+            except Exception as e:
+                err_str = str(e)
+                if "503" in err_str or "UNAVAILABLE" in err_str:
+                    logger.warning(f"{model} unavailable (503), trying fallback...")
+                    self._failed_models.add(model)
+                    continue
+                else:
+                    logger.error(f"Gemini streaming error on {model}: {e}")
+                    break
+
+        if not succeeded and not full_response:
             error_response = json.dumps({
                 "voice_reply": "I'm sorry, I had a brief issue connecting. Could you say that again?",
                 "feedback": {
@@ -110,13 +148,16 @@ class GeminiLLMService:
                     "vocabulary_tip": None,
                 },
             })
-            self._contents.append(
-                types.Content(
-                    role="model",
-                    parts=[types.Part.from_text(text=error_response)],
-                )
-            )
+            full_response = error_response
             yield error_response
+
+        # Record model turn in conversation history
+        self._contents.append(
+            types.Content(
+                role="model",
+                parts=[types.Part.from_text(text=full_response)],
+            )
+        )
 
     @staticmethod
     def parse_response(full_text: str) -> dict:

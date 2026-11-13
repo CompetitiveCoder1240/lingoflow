@@ -55,6 +55,7 @@ class DeepgramSTTService:
         self._on_utterance_end = on_utterance_end
         self._connection = None
         self._client = None
+        self._final_received = False
 
     async def start(self) -> None:
         """Open a live transcription WebSocket to Deepgram."""
@@ -73,12 +74,12 @@ class DeepgramSTTService:
             LiveTranscriptionEvents.Transcript, self._handle_transcript
         )
         self._connection.on(
-            LiveTranscriptionEvents.UtteranceEnd, self._handle_utterance_end
-        )
-        self._connection.on(
             LiveTranscriptionEvents.Error, self._handle_error
         )
 
+        # Use only well-supported options that work across all Deepgram plans.
+        # utterance_end_ms and vad_events require specific plan features;
+        # instead we detect end-of-utterance via is_final + speech_final.
         options = LiveOptions(
             model=DEEPGRAM_MODEL,
             language=DEEPGRAM_LANGUAGE,
@@ -87,9 +88,8 @@ class DeepgramSTTService:
             channels=DEEPGRAM_CHANNELS,
             punctuate=True,
             interim_results=True,
-            utterance_end_ms=600,       # Detect end-of-speech after 600ms silence
-            vad_events=True,
             smart_format=True,
+            endpointing=300,  # 300ms silence triggers endpoint (end-of-utterance)
         )
 
         started = await self._connection.start(options)
@@ -106,17 +106,30 @@ class DeepgramSTTService:
     async def stop(self) -> None:
         """Gracefully close the Deepgram connection."""
         if self._connection:
-            await self._connection.finish()
+            try:
+                await self._connection.finish()
+            except Exception as e:
+                logger.warning(f"Error closing Deepgram connection: {e}")
             logger.info("Deepgram connection closed.")
         self._connection = None
 
     # ── Internal Event Handlers ──────────────────────────────
 
     async def _handle_transcript(self, _conn, result, **kwargs) -> None:
-        """Process incoming transcript results from Deepgram."""
+        """
+        Process incoming transcript results from Deepgram.
+        Uses is_final + speech_final to detect end-of-utterance
+        (replaces the utterance_end_ms feature that requires specific plans).
+        """
         try:
             transcript = result.channel.alternatives[0].transcript
             if not transcript:
+                # Empty transcript on a final result means silence / end-of-speech.
+                # If we previously received a final transcript, trigger utterance end.
+                if result.is_final and self._final_received:
+                    self._final_received = False
+                    if self._on_utterance_end:
+                        await self._on_utterance_end()
                 return
 
             is_final = result.is_final
@@ -126,14 +139,19 @@ class DeepgramSTTService:
 
             if self._on_transcript:
                 await self._on_transcript(transcript, is_final)
+
+            if is_final:
+                self._final_received = True
+                # Check speech_final — indicates the speaker has stopped
+                # speaking (endpointing triggered). This is the reliable
+                # end-of-utterance signal.
+                speech_final = getattr(result, "speech_final", False)
+                if speech_final and self._on_utterance_end:
+                    self._final_received = False
+                    await self._on_utterance_end()
+
         except (IndexError, AttributeError) as e:
             logger.warning(f"Error parsing transcript: {e}")
-
-    async def _handle_utterance_end(self, _conn, result, **kwargs) -> None:
-        """Called when Deepgram detects the speaker has stopped talking."""
-        logger.debug("Utterance end detected.")
-        if self._on_utterance_end:
-            await self._on_utterance_end()
 
     async def _handle_error(self, _conn, error, **kwargs) -> None:
         """Log Deepgram errors."""

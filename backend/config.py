@@ -26,8 +26,10 @@ DEEPGRAM_CHANNELS: int = 1
 # ──────────────────────────────────────────────
 # Google Gemini LLM Configuration
 # ──────────────────────────────────────────────
-# Latest free-tier model on Google AI Studio
+# Primary: latest free-tier model on Google AI Studio
+# Fallback: lighter model used when primary returns 503
 GEMINI_MODEL: str = "gemini-3.8-flash"
+GEMINI_FALLBACK_MODEL: str = "gemini-3.5-flash-lite"
 GEMINI_TEMPERATURE: float = 0.7
 GEMINI_MAX_OUTPUT_TOKENS: int = 512
 
