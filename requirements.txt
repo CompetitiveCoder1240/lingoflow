@@ -1,0 +1,17 @@
+# Backend Framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-dotenv==1.0.1
+python-multipart==0.0.20
+
+# Speech-to-Text (Deepgram)
+deepgram-sdk==3.9.0
+
+# LLM (Groq)
+groq==0.15.0
+
+# Text-to-Speech (Edge-TTS - Free Microsoft Neural Voices)
+edge-tts==7.0.2
+
+# WebSocket support
+websockets==14.1

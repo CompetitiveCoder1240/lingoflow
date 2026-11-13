@@ -1,0 +1,480 @@
+/* =============================================
+   LingoFlow – Stylesheet
+   Modern dark-theme voice UI with animated orb
+   ============================================= */
+
+/* ── Reset & Base ──────────────────────────── */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #12121a;
+    --bg-card: #1a1a2e;
+    --text-primary: #e8e8f0;
+    --text-secondary: #9090a8;
+    --text-muted: #606078;
+    --accent: #6c63ff;
+    --accent-glow: rgba(108, 99, 255, 0.4);
+    --accent-secondary: #00d4aa;
+    --error: #ff6b6b;
+    --success: #51cf66;
+    --warning: #ffd43b;
+    --radius: 12px;
+    --radius-lg: 20px;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+    font-family: var(--font);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    overflow-x: hidden;
+}
+
+/* ── App Container ─────────────────────────── */
+.app-container {
+    width: 100%;
+    max-width: 520px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+}
+
+/* ── Header ────────────────────────────────── */
+.app-header {
+    text-align: center;
+    padding: 20px 0 10px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.logo-icon {
+    font-size: 28px;
+}
+
+.logo h1 {
+    font-size: 24px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.tagline {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+/* ── Voice Orb ─────────────────────────────── */
+.orb-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 0 20px;
+}
+
+.voice-orb {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.orb-core {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    box-shadow: 0 0 30px var(--accent-glow);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.orb-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1.5px solid rgba(108, 99, 255, 0.15);
+    transition: all 0.4s ease;
+}
+
+.orb-ring-1 {
+    width: 80px;
+    height: 80px;
+}
+
+.orb-ring-2 {
+    width: 105px;
+    height: 105px;
+}
+
+.orb-ring-3 {
+    width: 130px;
+    height: 130px;
+}
+
+/* Orb States */
+.voice-orb.listening .orb-core {
+    background: linear-gradient(135deg, var(--accent-secondary), #34d399);
+    box-shadow: 0 0 40px rgba(0, 212, 170, 0.5);
+    animation: orbPulse 1.5s ease-in-out infinite;
+}
+
+.voice-orb.listening .orb-ring {
+    border-color: rgba(0, 212, 170, 0.2);
+    animation: ringPulse 2s ease-in-out infinite;
+}
+
+.voice-orb.listening .orb-ring-2 {
+    animation-delay: 0.3s;
+}
+
+.voice-orb.listening .orb-ring-3 {
+    animation-delay: 0.6s;
+}
+
+.voice-orb.thinking .orb-core {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    box-shadow: 0 0 35px rgba(251, 191, 36, 0.4);
+    animation: orbSpin 1s linear infinite;
+}
+
+.voice-orb.thinking .orb-ring {
+    border-color: rgba(251, 191, 36, 0.15);
+}
+
+.voice-orb.speaking .orb-core {
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    box-shadow: 0 0 45px var(--accent-glow);
+    animation: orbSpeak 0.5s ease-in-out infinite alternate;
+}
+
+.voice-orb.speaking .orb-ring {
+    border-color: rgba(108, 99, 255, 0.25);
+    animation: ringExpand 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes orbPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+}
+
+@keyframes orbSpin {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(0.95); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes orbSpeak {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.12); }
+}
+
+@keyframes ringPulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 1; }
+}
+
+@keyframes ringExpand {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.08); }
+}
+
+.orb-status {
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-align: center;
+    min-height: 20px;
+}
+
+/* ── Controls ──────────────────────────────── */
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    padding: 10px 0 20px;
+}
+
+.btn-mic {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 20px var(--accent-glow);
+}
+
+.btn-mic:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 30px var(--accent-glow);
+}
+
+.btn-mic.active {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+}
+
+.mic-icon {
+    width: 24px;
+    height: 24px;
+}
+
+.btn-secondary {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    align-self: center;
+}
+
+.btn-secondary:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+/* ── Voice Selector ────────────────────────── */
+.voice-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 0 20px;
+}
+
+.voice-selector label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.voice-selector select {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-family: var(--font);
+    cursor: pointer;
+    outline: none;
+}
+
+.voice-selector select:focus {
+    border-color: var(--accent);
+}
+
+/* ── Transcript Area ───────────────────────── */
+.transcript-area {
+    flex: 1;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    min-height: 200px;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+}
+
+.transcript-placeholder {
+    color: var(--text-muted);
+    font-size: 14px;
+    text-align: center;
+    padding-top: 40px;
+}
+
+.transcript-msg {
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    line-height: 1.5;
+    max-width: 85%;
+    animation: fadeIn 0.3s ease;
+}
+
+.transcript-msg.user {
+    background: rgba(0, 212, 170, 0.1);
+    border: 1px solid rgba(0, 212, 170, 0.15);
+    color: var(--accent-secondary);
+    margin-left: auto;
+    text-align: right;
+}
+
+.transcript-msg.ai {
+    background: rgba(108, 99, 255, 0.1);
+    border: 1px solid rgba(108, 99, 255, 0.15);
+    color: var(--text-primary);
+}
+
+.transcript-msg .label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Feedback Card ─────────────────────────── */
+.feedback-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(108, 99, 255, 0.2);
+    padding: 16px;
+    margin-bottom: 16px;
+    animation: slideUp 0.3s ease;
+}
+
+.feedback-card.hidden {
+    display: none;
+}
+
+.feedback-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.feedback-icon {
+    font-size: 18px;
+}
+
+.feedback-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    flex: 1;
+}
+
+.btn-close-feedback {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.btn-close-feedback:hover {
+    color: var(--text-primary);
+}
+
+.feedback-body .correction-item {
+    background: rgba(255, 107, 107, 0.08);
+    border-left: 3px solid var(--error);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+.correction-item .original {
+    color: var(--error);
+    text-decoration: line-through;
+}
+
+.correction-item .corrected {
+    color: var(--success);
+    font-weight: 500;
+}
+
+.correction-item .rule {
+    color: var(--text-muted);
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+.feedback-body .tip-item {
+    background: rgba(0, 212, 170, 0.08);
+    border-left: 3px solid var(--accent-secondary);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.tip-item strong {
+    color: var(--accent-secondary);
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Footer ────────────────────────────────── */
+.app-footer {
+    text-align: center;
+    padding: 16px 0;
+}
+
+.app-footer p {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* ── Scrollbar ─────────────────────────────── */
+.transcript-area::-webkit-scrollbar {
+    width: 4px;
+}
+
+.transcript-area::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.transcript-area::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+/* ── Responsive ────────────────────────────── */
+@media (max-width: 480px) {
+    .app-container {
+        padding: 12px;
+    }
+    .voice-orb {
+        width: 120px;
+        height: 120px;
+    }
+    .orb-core {
+        width: 50px;
+        height: 50px;
+    }
+}

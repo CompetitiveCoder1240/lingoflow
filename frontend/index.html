@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LingoFlow – English Fluency Coach</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <span class="logo-icon">🗣️</span>
+                <h1>LingoFlow</h1>
+            </div>
+            <p class="tagline">Your AI English Fluency Coach</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Voice Orb Section -->
+            <div class="orb-section">
+                <div class="voice-orb" id="voiceOrb">
+                    <div class="orb-ring orb-ring-1"></div>
+                    <div class="orb-ring orb-ring-2"></div>
+                    <div class="orb-ring orb-ring-3"></div>
+                    <div class="orb-core" id="orbCore"></div>
+                </div>
+                <p class="orb-status" id="orbStatus">Click the microphone to start</p>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls">
+                <button class="btn-mic" id="btnMic" title="Start / Stop Microphone">
+                    <svg class="mic-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                    </svg>
+                </button>
+                <button class="btn-secondary" id="btnReset" title="Reset Conversation">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                        <path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Voice Selector -->
+            <div class="voice-selector">
+                <label for="voiceSelect">Coach Voice:</label>
+                <select id="voiceSelect">
+                    <option value="jenny" selected>Jenny (US, Warm)</option>
+                    <option value="guy">Guy (US, Professional)</option>
+                    <option value="aria">Aria (US, Expressive)</option>
+                    <option value="davis">Davis (US, Friendly)</option>
+                    <option value="sonia">Sonia (UK, British)</option>
+                    <option value="ryan">Ryan (UK, British)</option>
+                </select>
+            </div>
+
+            <!-- Transcript Area -->
+            <div class="transcript-area" id="transcriptArea">
+                <div class="transcript-placeholder" id="transcriptPlaceholder">
+                    Your conversation will appear here...
+                </div>
+            </div>
+
+            <!-- Feedback Card (Corrections & Tips) -->
+            <div class="feedback-card hidden" id="feedbackCard">
+                <div class="feedback-header">
+                    <span class="feedback-icon">✨</span>
+                    <h3>Language Feedback</h3>
+                    <button class="btn-close-feedback" id="btnCloseFeedback">&times;</button>
+                </div>
+                <div class="feedback-body" id="feedbackBody">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>Powered by Deepgram · Groq · Edge-TTS — 100% Free Stack</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/audio_recorder.js"></script>
+    <script src="/static/js/audio_player.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
