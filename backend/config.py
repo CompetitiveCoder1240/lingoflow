@@ -12,7 +12,7 @@ load_dotenv()
 # API Keys
 # ──────────────────────────────────────────────
 DEEPGRAM_API_KEY: str = os.getenv("DEEPGRAM_API_KEY", "")
-GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 
 # ──────────────────────────────────────────────
 # Deepgram STT Configuration
@@ -24,11 +24,12 @@ DEEPGRAM_SAMPLE_RATE: int = 16000        # 16kHz mono
 DEEPGRAM_CHANNELS: int = 1
 
 # ──────────────────────────────────────────────
-# Groq LLM Configuration
+# Google Gemini LLM Configuration
 # ──────────────────────────────────────────────
-GROQ_MODEL: str = "llama-3.3-70b-versatile"
-GROQ_MAX_TOKENS: int = 512
-GROQ_TEMPERATURE: float = 0.7
+# Latest free-tier model on Google AI Studio
+GEMINI_MODEL: str = "gemini-3.8-flash"
+GEMINI_TEMPERATURE: float = 0.7
+GEMINI_MAX_OUTPUT_TOKENS: int = 512
 
 # ──────────────────────────────────────────────
 # Edge-TTS Configuration (Free Neural Voices)

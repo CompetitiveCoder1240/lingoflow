@@ -7,8 +7,8 @@ python-multipart==0.0.20
 # Speech-to-Text (Deepgram)
 deepgram-sdk==3.9.0
 
-# LLM (Groq)
-groq==0.15.0
+# LLM (Google Gemini - Latest Unified SDK)
+google-genai>=1.0.0
 
 # Text-to-Speech (Edge-TTS - Free Microsoft Neural Voices)
 edge-tts==7.0.2

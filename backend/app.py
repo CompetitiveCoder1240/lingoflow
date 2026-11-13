@@ -3,7 +3,7 @@ LingoFlow - Main Application Server
 FastAPI backend with WebSocket endpoint for real-time voice conversation.
 
 Architecture:
-  Client Mic → WebSocket → Deepgram STT → Groq LLM (streaming) →
+  Client Mic → WebSocket → Deepgram STT → Google Gemini 3.8 Flash (streaming) →
   Edge-TTS (sentence-chunked) → WebSocket → Client Speaker
 """
 
@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse
 
 from backend.config import HOST, PORT, AVAILABLE_VOICES
 from backend.services.stt_service import DeepgramSTTService
-from backend.services.llm_service import GroqLLMService
+from backend.services.llm_service import GeminiLLMService
 from backend.services.tts_service import EdgeTTSService
 
 # ── Logging ──────────────────────────────────────────────────
@@ -48,7 +48,7 @@ async def serve_index():
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "ok", "service": "LingoFlow"}
+    return {"status": "ok", "service": "LingoFlow", "llm": "Gemini 3.8 Flash"}
 
 
 # ── WebSocket Conversation Endpoint ─────────────────────────
@@ -80,7 +80,7 @@ async def conversation_ws(websocket: WebSocket):
     logger.info("Client connected to conversation WebSocket.")
 
     # Initialize services
-    llm_service = GroqLLMService()
+    llm_service = GeminiLLMService()
     tts_service = EdgeTTSService()
 
     # State
