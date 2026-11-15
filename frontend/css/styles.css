@@ -262,6 +262,56 @@ body {
     color: var(--text-primary);
 }
 
+/* ── Mode Selector ─────────────────────────── */
+.mode-selector {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 0 16px;
+}
+
+.mode-btn {
+    flex: 1;
+    max-width: 170px;
+    background: var(--bg-card);
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    transition: all 0.2s ease;
+    color: var(--text-secondary);
+}
+
+.mode-btn:hover {
+    border-color: rgba(108, 99, 255, 0.4);
+    color: var(--text-primary);
+}
+
+.mode-btn.active {
+    background: rgba(108, 99, 255, 0.12);
+    border-color: var(--accent);
+    color: var(--text-primary);
+    box-shadow: 0 0 16px rgba(108, 99, 255, 0.2);
+}
+
+.mode-title {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.mode-desc {
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.mode-btn.active .mode-desc {
+    color: var(--accent-secondary);
+}
+
 /* ── Voice Selector ────────────────────────── */
 .voice-selector {
     display: flex;

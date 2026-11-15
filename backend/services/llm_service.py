@@ -19,6 +19,7 @@ from backend.config import (
     GEMINI_FALLBACK_MODEL,
     GEMINI_TEMPERATURE,
     GEMINI_MAX_OUTPUT_TOKENS,
+    DEFAULT_COACHING_MODE,
 )
 from backend.prompts.tutor_prompts import build_system_prompt
 
@@ -40,7 +41,7 @@ class GeminiLLMService:
         parsed = llm.parse_response(full_text)
     """
 
-    def __init__(self):
+    def __init__(self, coaching_mode: str = DEFAULT_COACHING_MODE):
         if not GEMINI_API_KEY:
             raise ValueError(
                 "GEMINI_API_KEY is not set. "
@@ -48,9 +49,17 @@ class GeminiLLMService:
             )
         self._client = genai.Client(api_key=GEMINI_API_KEY)
         self._contents: list[types.Content] = []
-        self._system_prompt = build_system_prompt()
+        self._coaching_mode = coaching_mode
+        self._system_prompt = build_system_prompt(mode=coaching_mode)
         self._active_model = GEMINI_MODEL
         self._failed_models: set[str] = set()
+
+    def set_coaching_mode(self, mode: str) -> None:
+        """Switch between 'instructor' and 'casual' coaching modes."""
+        if mode in ("instructor", "casual"):
+            self._coaching_mode = mode
+            self._system_prompt = build_system_prompt(mode=mode)
+            logger.info(f"Coaching mode set to: {mode}")
 
     def reset_conversation(self) -> None:
         """Clear conversation history for a fresh session."""

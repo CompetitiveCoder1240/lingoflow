@@ -50,9 +50,17 @@ class AudioRecorder {
                 if (!this.isRecording) return;
 
                 const inputData = event.inputBuffer.getChannelData(0);
+
+                // Compute RMS energy for silence/speaking/barge-in detection
+                let sum = 0;
+                for (let i = 0; i < inputData.length; i++) {
+                    sum += inputData[i] * inputData[i];
+                }
+                const rms = Math.sqrt(sum / inputData.length);
+
                 // Convert Float32 [-1, 1] to Int16 PCM
                 const pcmData = this._float32ToInt16(inputData);
-                this.onAudioData(pcmData.buffer);
+                this.onAudioData(pcmData.buffer, rms);
             };
 
             this.source.connect(this.processor);

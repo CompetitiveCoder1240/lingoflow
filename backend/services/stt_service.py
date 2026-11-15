@@ -22,6 +22,7 @@ from backend.config import (
     DEEPGRAM_ENCODING,
     DEEPGRAM_SAMPLE_RATE,
     DEEPGRAM_CHANNELS,
+    DEEPGRAM_ENDPOINTING_MS,
 )
 
 logger = logging.getLogger(__name__)
@@ -89,7 +90,7 @@ class DeepgramSTTService:
             punctuate=True,
             interim_results=True,
             smart_format=True,
-            endpointing=300,  # 300ms silence triggers endpoint (end-of-utterance)
+            endpointing=DEEPGRAM_ENDPOINTING_MS,  # Learner-friendly silence buffer
         )
 
         started = await self._connection.start(options)

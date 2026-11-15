@@ -16,7 +16,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from backend.config import HOST, PORT, AVAILABLE_VOICES
+from backend.config import HOST, PORT, AVAILABLE_VOICES, DEFAULT_COACHING_MODE
 from backend.services.stt_service import DeepgramSTTService
 from backend.services.llm_service import GeminiLLMService
 from backend.services.tts_service import EdgeTTSService
@@ -80,7 +80,7 @@ async def conversation_ws(websocket: WebSocket):
     logger.info("Client connected to conversation WebSocket.")
 
     # Initialize services
-    llm_service = GeminiLLMService()
+    llm_service = GeminiLLMService(coaching_mode=DEFAULT_COACHING_MODE)
     tts_service = EdgeTTSService()
 
     # State
@@ -201,7 +201,7 @@ async def conversation_ws(websocket: WebSocket):
 
         # Signal ready
         await websocket.send_text(json.dumps({
-            "type": "state", "state": "idle",
+            "type": "state", "state": "idle", "mode": DEFAULT_COACHING_MODE,
         }))
 
         # ── Main message loop ────────────────────────────
@@ -232,6 +232,12 @@ async def conversation_ws(websocket: WebSocket):
                     voice_key = data.get("voice")
                     if voice_key:
                         tts_service.set_voice(voice_key, AVAILABLE_VOICES)
+                    mode = data.get("mode")
+                    if mode:
+                        llm_service.set_coaching_mode(mode)
+                        await websocket.send_text(json.dumps({
+                            "type": "mode_updated", "mode": mode,
+                        }))
 
     except WebSocketDisconnect:
         logger.info("Client disconnected.")

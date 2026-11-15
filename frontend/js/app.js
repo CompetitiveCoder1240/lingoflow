@@ -1,7 +1,7 @@
 /**
  * LingoFlow – Main Application Controller
- * Orchestrates the WebSocket connection, audio recorder, audio player,
- * and all UI updates for the real-time voice conversation experience.
+ * Orchestrates WebSocket connection, audio recorder, audio player,
+ * Echo Guard, Barge-In, and UI updates for real-time voice conversations.
  */
 
 (function () {
@@ -13,18 +13,24 @@
     const btnMic = document.getElementById('btnMic');
     const btnReset = document.getElementById('btnReset');
     const voiceSelect = document.getElementById('voiceSelect');
+    const modeInstructor = document.getElementById('modeInstructor');
+    const modeCasual = document.getElementById('modeCasual');
     const transcriptArea = document.getElementById('transcriptArea');
     const transcriptPlaceholder = document.getElementById('transcriptPlaceholder');
     const feedbackCard = document.getElementById('feedbackCard');
     const feedbackBody = document.getElementById('feedbackBody');
     const btnCloseFeedback = document.getElementById('btnCloseFeedback');
 
-    // ── State ───────────────────────────────────────────
+    // ── State & Constants ────────────────────────────────
     let ws = null;
     let recorder = null;
     let player = null;
     let isSessionActive = false;
     let currentState = 'idle'; // idle, listening, thinking, speaking
+    let currentMode = 'instructor'; // 'instructor' or 'casual'
+
+    // Volume threshold to distinguish intentional user speech from speaker spillover
+    const BARGE_IN_RMS_THRESHOLD = 0.07;
 
     // ── Initialize ──────────────────────────────────────
 
@@ -32,7 +38,7 @@
         player = new AudioPlayer();
 
         player.onPlaybackComplete = () => {
-            // After AI finishes speaking, go back to listening if session active
+            // After AI finishes speaking, return to listening if session active
             if (isSessionActive && currentState === 'speaking') {
                 setOrbState('listening');
             }
@@ -42,6 +48,13 @@
         btnMic.addEventListener('click', toggleSession);
         btnReset.addEventListener('click', resetConversation);
         voiceSelect.addEventListener('change', changeVoice);
+        voiceOrb.addEventListener('click', onOrbClick);
+
+        if (modeInstructor && modeCasual) {
+            modeInstructor.addEventListener('click', () => setMode('instructor'));
+            modeCasual.addEventListener('click', () => setMode('casual'));
+        }
+
         btnCloseFeedback.addEventListener('click', () => {
             feedbackCard.classList.add('hidden');
         });
@@ -57,6 +70,8 @@
 
         ws.onopen = () => {
             console.log('[WS] Connected.');
+            // Sync coaching mode and voice selection on open
+            ws.send(JSON.stringify({ type: 'config', mode: currentMode, voice: voiceSelect.value }));
         };
 
         ws.onmessage = (event) => {
@@ -92,6 +107,13 @@
         switch (msg.type) {
             case 'state':
                 setOrbState(msg.state);
+                if (msg.mode) {
+                    applyModeUI(msg.mode);
+                }
+                break;
+
+            case 'mode_updated':
+                applyModeUI(msg.mode);
                 break;
 
             case 'transcript':
@@ -132,10 +154,25 @@
         try {
             connectWebSocket();
 
-            recorder = new AudioRecorder((pcmBuffer) => {
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(pcmBuffer);
+            recorder = new AudioRecorder((pcmBuffer, rms) => {
+                if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+                // ── Echo Guard & Barge-in Logic ──────────────
+                const isAISpeaking = (currentState === 'speaking') || (player && player.isPlaying);
+
+                if (isAISpeaking) {
+                    // AI is currently speaking through the speakers.
+                    // Only pass audio if user speaks clearly over it (barge-in).
+                    if (rms > BARGE_IN_RMS_THRESHOLD) {
+                        triggerBargeIn();
+                        ws.send(pcmBuffer);
+                    }
+                    // Else: suppress speaker feedback loop
+                    return;
                 }
+
+                // AI is not speaking: normal voice transmission
+                ws.send(pcmBuffer);
             });
 
             await recorder.start();
@@ -204,12 +241,47 @@
         }
     }
 
-    // ── Barge-in: User speaks while AI is talking ────────
+    function setMode(mode) {
+        currentMode = mode;
+        applyModeUI(mode);
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'config', mode: mode }));
+        }
+    }
 
-    // Detect barge-in: if the user starts recording while AI is speaking
-    // Note: This is handled by the backend via VAD + Deepgram utterance events.
-    // On the client side, when we detect the user's mic is active and AI is
-    // speaking, we send a cancel signal and stop playback.
+    function applyModeUI(mode) {
+        currentMode = mode;
+        if (mode === 'instructor') {
+            modeInstructor.classList.add('active');
+            modeCasual.classList.remove('active');
+        } else {
+            modeCasual.classList.add('active');
+            modeInstructor.classList.remove('active');
+        }
+    }
+
+    // ── Barge-In (Interruption Handling) ─────────────────
+
+    function onOrbClick() {
+        if (currentState === 'speaking') {
+            // Clicking orb while AI speaks interrupts it
+            triggerBargeIn();
+        } else if (!isSessionActive) {
+            startSession();
+        }
+    }
+
+    function triggerBargeIn() {
+        console.log('[BargeIn] Interrupted AI speech.');
+        if (player) {
+            player.stop();
+        }
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'control', action: 'cancel' }));
+        }
+        setOrbState('listening');
+        setStatus('Listening to you...');
+    }
 
     // ── UI Updates ──────────────────────────────────────
 
@@ -228,7 +300,7 @@
                 break;
             case 'speaking':
                 voiceOrb.classList.add('speaking');
-                setStatus('Speaking...');
+                setStatus('Speaking... (tap orb or speak to interrupt)');
                 break;
             case 'idle':
             default:
@@ -246,7 +318,6 @@
     }
 
     function addTranscriptMessage(label, text, type) {
-        // Remove placeholder if present
         const placeholder = document.getElementById('transcriptPlaceholder');
         if (placeholder) placeholder.remove();
 

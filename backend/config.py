@@ -22,14 +22,15 @@ DEEPGRAM_LANGUAGE: str = "en"            # English-only for POC
 DEEPGRAM_ENCODING: str = "linear16"      # Raw PCM from browser mic
 DEEPGRAM_SAMPLE_RATE: int = 16000        # 16kHz mono
 DEEPGRAM_CHANNELS: int = 1
+DEEPGRAM_ENDPOINTING_MS: int = 500       # Silence to trigger end-of-speech (learner-friendly)
 
 # ──────────────────────────────────────────────
 # Google Gemini LLM Configuration
 # ──────────────────────────────────────────────
-# Primary: latest free-tier model on Google AI Studio
-# Fallback: lighter model used when primary returns 503
-GEMINI_MODEL: str = "gemini-3.8-flash"
-GEMINI_FALLBACK_MODEL: str = "gemini-3.5-flash-lite"
+# Primary: fast, responsive free-tier model with sub-second latency for voice
+GEMINI_MODEL: str = "gemini-3.5-flash-lite"
+# Fallback: high-capacity model
+GEMINI_FALLBACK_MODEL: str = "gemini-3.8-flash"
 GEMINI_TEMPERATURE: float = 0.7
 GEMINI_MAX_OUTPUT_TOKENS: int = 512
 
@@ -51,9 +52,9 @@ AVAILABLE_VOICES: dict = {
 }
 
 # ──────────────────────────────────────────────
-# Voice Activity Detection (VAD)
+# Coaching Mode
 # ──────────────────────────────────────────────
-VAD_SILENCE_THRESHOLD_MS: int = 600      # Silence duration to trigger end-of-speech
+DEFAULT_COACHING_MODE: str = "instructor"  # "instructor" or "casual"
 
 # ──────────────────────────────────────────────
 # Sentence Chunking (for streaming TTS)
