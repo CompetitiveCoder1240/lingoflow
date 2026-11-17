@@ -58,27 +58,37 @@ python -m backend.app
 
 Navigate to **http://localhost:8000** in your browser, click the microphone, and start talking!
 
-## 📂 Project Structure
+## 📂 Project Structure (MVC Architecture)
 
 ```
 lingoflow/
 ├── backend/
-│   ├── app.py                 # FastAPI server & WebSocket endpoint
-│   ├── config.py              # Configuration settings (Gemini 3.8 Flash, etc.)
-│   ├── services/
-│   │   ├── stt_service.py     # Deepgram real-time transcription
-│   │   ├── llm_service.py     # Google Gemini streaming completions (google-genai)
-│   │   └── tts_service.py     # Edge-TTS sentence-chunked synthesis
+│   ├── app.py                 # Thin FastAPI application factory (< 45 lines)
+│   ├── config.py              # Centralized environment & model configuration
+│   ├── models/                # [M] Data structures, schemas, and session state
+│   │   ├── schemas.py         # Pydantic models for events, feedback, & controls
+│   │   └── session.py         # Active conversation session runtime model
+│   ├── views/                 # [V] API presentation & routing layer
+│   │   └── routes.py          # HTTP endpoints & WebSocket route definitions
+│   ├── controllers/           # [C] Business orchestration & workflow
+│   │   ├── conversation_controller.py  # Real-time WebSocket voice pipeline
+│   │   └── http_controller.py          # HTTP views & diagnostic health checks
+│   ├── services/              # Domain & Provider integrations
+│   │   ├── stt_service.py     # Deepgram Nova-2 streaming STT
+│   │   ├── llm_service.py     # Google Gemini streaming LLM
+│   │   └── tts_service.py     # Microsoft Edge-TTS neural speech synthesis
 │   └── prompts/
-│       └── tutor_prompts.py   # English fluency coach persona
-├── frontend/
-│   ├── index.html             # Voice interface
-│   ├── css/styles.css         # Dark-theme UI with animated orb
+│       └── tutor_prompts.py   # Instructor & Casual system prompt personas
+├── frontend/                  # Client-side View
+│   ├── index.html             # Main voice interface
+│   ├── css/styles.css         # Modern dark-theme UI with animated voice orb
 │   └── js/
-│       ├── audio_recorder.js  # Mic capture & PCM streaming
-│       ├── audio_player.js    # MP3 queue player with barge-in
-│       └── app.js             # UI orchestrator & WebSocket manager
-├── .env.example               # API key template
+│       ├── audio_recorder.js  # Mic capture with real-time RMS energy meter
+│       ├── audio_player.js    # Gapless MP3 queue player with barge-in
+│       └── app.js             # UI controller, Echo Guard, and WebSocket manager
+├── test_mvc.py                # MVC unit & integration test suite
+├── test_pipeline.py           # End-to-end service pipeline test suite
+├── .env.example               # Free API keys template
 ├── requirements.txt           # Python dependencies
 └── README.md
 ```
